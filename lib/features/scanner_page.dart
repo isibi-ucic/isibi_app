@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:hand_landmarker/hand_landmarker.dart'; // Untuk objek Hand dan Landmark
 import 'package:isibi_app/core/services/hand_landmarker_service.dart';
+import 'package:isibi_app/core/services/landmark_painter.dart';
 import 'package:isibi_app/core/services/prediction_services.dart';
 import 'package:isibi_app/core/services/tflite_service.dart';
 
@@ -84,9 +85,11 @@ class _ScannerPageState extends State<ScannerPage> {
         _isProcessing = true;
       });
 
+      final sensorOrientation =
+          _cameraController!.description.sensorOrientation;
       // Lakukan semua proses di dalam try-catch-finally atau .whenComplete
       _handLandmarkerService
-          .detect(image, _cameraController!.value.deviceOrientation.index)
+          .detect(image, sensorOrientation)
           .then((hands) {
             setState(() {
               _detectedHands = hands;
@@ -159,7 +162,28 @@ class _ScannerPageState extends State<ScannerPage> {
       body: Stack(
         children: [
           if (_isCameraInitialized && _cameraController != null)
-            Positioned.fill(child: CameraPreview(_cameraController!))
+            // Bungkus dengan Center agar posisinya di tengah layar
+            Center(
+              // Bungkus dengan AspectRatio untuk menjaga proporsi
+              child: AspectRatio(
+                aspectRatio: _cameraController!.value.aspectRatio,
+                // Stack ini memastikan CameraPreview dan CustomPaint punya ukuran yang sama
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CameraPreview(_cameraController!),
+                    // Painter kini akan mewarisi ukuran yang benar dari AspectRatio
+                    CustomPaint(
+                      size: Size.infinite,
+                      painter: LandmarkPainter(
+                        hands: _detectedHands,
+                        cameraPreviewSize: _cameraController?.value.previewSize,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
           else
             const Center(child: CircularProgressIndicator()),
 
