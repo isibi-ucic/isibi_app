@@ -185,14 +185,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.4"
-  fixnum:
-    dependency: transitive
-    description:
-      name: fixnum
-      sha256: b6dc7065e46c974bc7c5f143080a6764ec7a4be6da1285ececdc37be96de53be
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.1.1"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -278,14 +270,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"
-  flutter_mediapipe:
-    dependency: "direct main"
-    description:
-      name: flutter_mediapipe
-      sha256: "6893450578145e558ac0fbc3e5389b8e007867c22a91f9f92fc7c9c21b2ccaba"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.7"
   flutter_native_splash:
     dependency: "direct dev"
     description:
@@ -344,6 +328,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.14.0"
+  hand_landmarker:
+    dependency: "direct main"
+    description:
+      name: hand_landmarker
+      sha256: c499893214b463052bba870cd63f98dd6c1cf845f9a97e2b6f1dd5a1a05d1df3
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   html:
     dependency: transitive
     description:
@@ -360,6 +352,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.5.4"
+  jni:
+    dependency: transitive
+    description:
+      name: jni
+      sha256: d2c361082d554d4593c3012e26f6b188f902acd291330f13d6427641a92b3da1
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.14.2"
   json_annotation:
     dependency: transitive
     description:
@@ -424,6 +424,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.16.0"
+  package_config:
+    dependency: transitive
+    description:
+      name: package_config
+      sha256: f096c55ebb7deb7e384101542bfba8c52696c1b56fca2eb62827989ef2353bbc
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.0"
   path:
     dependency: transitive
     description:
@@ -456,14 +464,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.3"
-  protobuf:
-    dependency: transitive
-    description:
-      name: protobuf
-      sha256: "01dd9bd0fa02548bf2ceee13545d4a0ec6046459d847b6b061d8a27237108a08"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.0"
   quiver:
     dependency: transitive
     description:

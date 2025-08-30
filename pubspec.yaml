@@ -43,7 +43,7 @@ dependencies:
   google_mlkit_pose_detection: ^0.14.0
   glassmorphism: ^3.0.0
   video_player: ^2.10.0
-  flutter_mediapipe: ^0.0.7
+  hand_landmarker: ^2.1.0
 
 dev_dependencies:
   flutter_launcher_icons: "^0.13.1"

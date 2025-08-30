@@ -1,38 +1,26 @@
 import 'package:flutter/material.dart';
-
-import 'package:flutter_mediapipe/flutter_mediapipe.dart';
-import 'package:flutter_mediapipe/gen/landmark.pb.dart';
+// Ganti dengan path file Anda yang benar
+import 'main_navigation.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Flutter Mediapipe')),
-        body: Container(
-          child: NativeView(
-            onViewCreated: (FlutterMediapipe c) => setState(() {
-              c.landMarksStream.listen(_onLandMarkStream);
-              c.platformVersion.then((content) => print(content));
-            }),
-          ),
-        ),
+      title: 'I-Sibi App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        scaffoldBackgroundColor:
+            Colors.grey.shade100, // Warna latar belakang app
       ),
+      debugShowCheckedModeBanner: false,
+      home: const MainNavigation(),
     );
-  }
-
-  void _onLandMarkStream(NormalizedLandmarkList landmarkList) {
-    landmarkList.landmark.asMap().forEach((int i, NormalizedLandmark value) {
-      print('Index: $i \n' + '$value');
-    });
   }
 }
