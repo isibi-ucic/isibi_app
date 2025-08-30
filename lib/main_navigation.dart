@@ -1,7 +1,6 @@
-import 'package:isibi_app/features/sign_detector/presentation/pages/scanner_page.dart';
-
-import 'features/home/presentation/pages/home_page.dart';
-import 'features/materi/presentation/pages/materi_list_page.dart';
+import 'package:isibi_app/features/scanner_web_page.dart';
+import 'features/home_page.dart';
+import 'features/materi_list_page.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
@@ -35,18 +34,17 @@ class _MainNavigationState extends State<MainNavigation> {
       // Tombol Scanner yang Mengambang
       floatingActionButton: FloatingActionButton(
         shape: const CircleBorder(),
-        foregroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
         backgroundColor: Colors.blue.shade700,
         child: const Icon(
-          FontAwesomeIcons
-              .handsAslInterpreting, // Ikon yang merepresentasikan sign language
+          FontAwesomeIcons.camera, // Ikon yang merepresentasikan sign language
           color: Colors.white,
         ),
         onPressed: () {
           // Aksi saat tombol scanner ditekan
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ScannerPage()),
+            MaterialPageRoute(builder: (context) => const ScannerWebPage()),
           );
         },
       ),
@@ -57,12 +55,13 @@ class _MainNavigationState extends State<MainNavigation> {
         shadow: BoxShadow(blurRadius: 20, color: Colors.black.withAlpha(95)),
         height: 75,
         icons: _iconList,
+        iconSize: 32,
         activeIndex: _bottomNavIndex,
         gapLocation: GapLocation.center,
         notchSmoothness: NotchSmoothness.smoothEdge,
         leftCornerRadius: 24,
         rightCornerRadius: 24,
-        // backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         activeColor: Colors.blue.shade700,
         inactiveColor: Colors.grey,
         onTap: (index) => setState(() => _bottomNavIndex = index),

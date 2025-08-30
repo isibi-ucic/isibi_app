@@ -1,8 +1,10 @@
-// // lib/pages/scanner_page.dart
+// // lib/features/sign_detector/presentation/pages/scanner_page.dart
 
 // import 'package:flutter/material.dart';
 // import 'package:camera/camera.dart';
 // import 'package:glassmorphism/glassmorphism.dart';
+// import 'package:hand_landmarker/hand_landmarker.dart'; // Untuk objek Hand dan Landmark
+// import 'package:isibi_app/core/services/hand_landmarker_service.dart';
 // import 'package:isibi_app/core/services/prediction_services.dart';
 // import 'package:isibi_app/core/services/tflite_service.dart';
 
@@ -20,31 +22,43 @@
 //   bool _isProcessing = false;
 
 //   // Inisialisasi Services
-//   final PredictionService _predictionService = PredictionService();
+//   final HandLandmarkerService _handLandmarkerService = HandLandmarkerService();
 //   final TFLiteService _tfliteService = TFLiteService();
+//   final PredictionService _predictionService = PredictionService();
 
 //   // Variabel untuk menampilkan hasil di UI
+//   List<Hand> _detectedHands = [];
 //   String? _currentPrediction;
 //   String _currentSentence = "";
-//   List<String> _suggestions = [];
+//   final List<String> _suggestions = [];
 
 //   @override
 //   void initState() {
 //     super.initState();
-//     _initializeServices();
+//     _initializeAllServices();
 //   }
 
-//   // 🚀 LANGKAH 1: INISIALISASI
-//   Future<void> _initializeServices() async {
-//     // Muat model TFLite (dan kamus di dalam prediction service)
-//     await _tfliteService.loadModel();
-//     // Setelah service siap, baru inisialisasi kamera
-//     _initializeCamera();
+//   Future<void> _initializeAllServices() async {
+//     try {
+//       // 1. TUNGGU loadModel BENAR-BENAR SELESAI
+//       await _tfliteService.loadModel();
+//       await _handLandmarkerService.initialize();
+
+//       // 2. HANYA JIKA service lain berhasil, baru inisialisasi kamera
+//       await _initializeCamera();
+//     } catch (e) {
+//       print("Error saat inisialisasi service: $e");
+//       // Tampilkan pesan error ke pengguna jika perlu
+//       if (mounted) {
+//         setState(() {
+//           // Tambahkan variabel state untuk error message jika mau
+//         });
+//       }
+//     }
 //   }
 
 //   Future<void> _initializeCamera() async {
 //     final cameras = await availableCameras();
-//     // Menggunakan kamera depan untuk deteksi isyarat selfie-style
 //     final backCamera = cameras.firstWhere(
 //       (camera) => camera.lensDirection == CameraLensDirection.back,
 //       orElse: () => cameras.first,
@@ -53,62 +67,88 @@
 //     _cameraController = CameraController(
 //       backCamera,
 //       ResolutionPreset.medium,
-//       enableAudio: false, // Matikan audio karena tidak dibutuhkan
-//       imageFormatGroup: ImageFormatGroup.nv21,
+//       enableAudio: false,
 //     );
 //     await _cameraController!.initialize();
-
 //     if (!mounted) return;
+
 //     setState(() {
 //       _isCameraInitialized = true;
 //     });
 
-//     // 🔗 LANGKAH 2 & 3 & 4: MENGHUBUNGKAN ALIRAN DATA DENGAN LOGIKA YANG AMAN
+//     // 3. LOGIKA BUFFER YANG AMAN DI startImageStream
 //     _cameraController!.startImageStream((image) {
-//       if (_isProcessing) return; // Mencegah frame diproses bertumpuk
+//       if (_isProcessing) return;
 
 //       setState(() {
 //         _isProcessing = true;
 //       });
 
-//       // Jalankan semua proses di background
-//       _tfliteService
-//           .runInference(image, _cameraController!.value.deviceOrientation.index)
-//           .then((prediction) {
-//             // Blok ini hanya berjalan jika proses inferensi SUKSES
-//             if (prediction != null && prediction.isNotEmpty) {
-//               _predictionService.addCharacter(prediction);
+//       // Lakukan semua proses di dalam try-catch-finally atau .whenComplete
+//       _handLandmarkerService
+//           .detect(image, _cameraController!.value.deviceOrientation.index)
+//           .then((hands) {
+//             setState(() {
+//               _detectedHands = hands;
+//             });
 
-//               // 🎨 LANGKAH 5: UPDATE UI DENGAN HASIL TERBARU
-//               if (mounted) {
-//                 setState(() {
-//                   _currentPrediction =
-//                       prediction; // Update huruf mentah yang terdeteksi
-//                   _currentSentence =
-//                       _predictionService.currentSentence; // Update kalimat
-//                   _suggestions = _predictionService
-//                       .getSuggestions(); // Update saran kata
+//             if (hands.isNotEmpty) {
+//               final List<double> normalizedLandmarks = _normalizeLandmarks(
+//                 hands.first.landmarks,
+//               );
+
+//               if (normalizedLandmarks.length == 42) {
+//                 _tfliteService.runInference(normalizedLandmarks).then((
+//                   prediction,
+//                 ) {
+//                   if (prediction != null) {
+//                     _predictionService.addCharacter(prediction);
+//                     if (mounted) {
+//                       setState(() {
+//                         _currentPrediction = prediction;
+//                         _currentSentence = _predictionService.currentSentence;
+//                       });
+//                     }
+//                   }
 //                 });
 //               }
 //             }
 //           })
+//           .catchError((error) {
+//             // Tangani error yang mungkin terjadi selama deteksi
+//             print("Error dalam stream: $error");
+//           })
 //           .whenComplete(() {
-//             // Blok ini SELALU berjalan, baik sukses maupun gagal (error)
-//             // Ini memastikan aplikasi tidak akan pernah 'macet'
+//             // Bagian ini akan SELALU dijalankan, memastikan flag direset
 //             if (mounted) {
 //               setState(() {
-//                 _isProcessing = false; // Buka kembali 'gerbang' proses
+//                 _isProcessing = false;
 //               });
 //             }
 //           });
 //     });
+
+//     setState(() {
+//       _isCameraInitialized = true;
+//     });
+//   }
+
+//   List<double> _normalizeLandmarks(List<Landmark> landmarks) {
+//     if (landmarks.isEmpty) return [];
+//     final wrist = landmarks[0];
+//     List<double> normalized = [];
+//     for (var landmark in landmarks) {
+//       normalized.add(landmark.x - wrist.x);
+//       normalized.add(landmark.y - wrist.y);
+//     }
+//     return normalized;
 //   }
 
 //   @override
 //   void dispose() {
-//     // 🧹 LANGKAH 6: MEMBERSIHKAN RESOURCES
 //     _cameraController?.stopImageStream();
 //     _cameraController?.dispose();
+//     _handLandmarkerService.dispose();
 //     _tfliteService.dispose();
 //     super.dispose();
 //   }
@@ -122,14 +162,21 @@
 //             Positioned.fill(child: CameraPreview(_cameraController!))
 //           else
 //             const Center(child: CircularProgressIndicator()),
+
+//           // // Painter untuk menggambar kerangka tangan
+//           // CustomPaint(
+//           //   size: Size.infinite,
+//           //   painter: LandmarkPainter(
+//           //     hands: _detectedHands,
+//           //     cameraPreviewSize: _cameraController?.value.previewSize,
+//           //   ),
+//           // ),
 //           _buildBackButton(),
 //           _buildBottomPanel(),
 //         ],
 //       ),
 //     );
 //   }
-
-//   // --- Widget untuk UI ---
 
 //   Widget _buildBackButton() {
 //     return Positioned(
@@ -143,8 +190,6 @@
 //         alignment: Alignment.center,
 //         border: 1,
 //         linearGradient: LinearGradient(
-//           begin: Alignment.topLeft,
-//           end: Alignment.bottomRight,
 //           colors: [
 //             Colors.white.withOpacity(0.2),
 //             Colors.white.withOpacity(0.1),
@@ -163,6 +208,8 @@
 //       ),
 //     );
 //   }
+
+//   // Di dalam file scanner_page.dart
 
 //   Widget _buildBottomPanel() {
 //     return Positioned(
@@ -215,7 +262,7 @@
 //                 ),
 //                 textAlign: TextAlign.center,
 //               ),
-//               // Prediksi Kata
+//               // Prediksi Kata (BAGIAN YANG DIPERBAIKI)
 //               SizedBox(
 //                 height: 40,
 //                 child: ListView(
