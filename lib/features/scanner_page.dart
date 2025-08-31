@@ -21,11 +21,13 @@ class _ScannerPageState extends State<ScannerPage> {
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _isProcessing = false;
+  String? _errorMessage; // <-- Variabel baru untuk pesan error
 
   // Inisialisasi Services
-  final HandLandmarkerService _handLandmarkerService = HandLandmarkerService();
-  final TFLiteService _tfliteService = TFLiteService();
-  final PredictionService _predictionService = PredictionService();
+  late final HandLandmarkerService _handLandmarkerService =
+      HandLandmarkerService();
+  late final TFLiteService _tfliteService = TFLiteService();
+  late final PredictionService _predictionService = PredictionService();
 
   // Variabel untuk menampilkan hasil di UI
   List<Hand> _detectedHands = [];
@@ -70,12 +72,9 @@ class _ScannerPageState extends State<ScannerPage> {
       ResolutionPreset.medium,
       enableAudio: false,
     );
+
     await _cameraController!.initialize();
     if (!mounted) return;
-
-    setState(() {
-      _isCameraInitialized = true;
-    });
 
     // 3. LOGIKA BUFFER YANG AMAN DI startImageStream
     _cameraController!.startImageStream((image) {
@@ -156,28 +155,42 @@ class _ScannerPageState extends State<ScannerPage> {
     super.dispose();
   }
 
+  // Di dalam file scanner_page.dart
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          if (_isCameraInitialized && _cameraController != null)
-            // Bungkus dengan Center agar posisinya di tengah layar
+          // --- TAMPILAN KONDISIONAL BARU ---
+          if (_errorMessage != null)
+            // 1. Jika ada error, tampilkan pesan error
             Center(
-              // Bungkus dengan AspectRatio untuk menjaga proporsi
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(
+                  'Terjadi Kesalahan:\n\n$_errorMessage',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                ),
+              ),
+            )
+          else if (_isCameraInitialized && _cameraController != null)
+            // 2. Jika sukses, tampilkan kamera
+            Center(
               child: AspectRatio(
                 aspectRatio: _cameraController!.value.aspectRatio,
-                // Stack ini memastikan CameraPreview dan CustomPaint punya ukuran yang sama
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
                     CameraPreview(_cameraController!),
-                    // Painter kini akan mewarisi ukuran yang benar dari AspectRatio
                     CustomPaint(
                       size: Size.infinite,
                       painter: LandmarkPainter(
                         hands: _detectedHands,
-                        cameraPreviewSize: _cameraController?.value.previewSize,
+                        cameraPreviewSize:
+                            _cameraController!.value.previewSize!,
+                        cameraLensDirection:
+                            _cameraController!.description.lensDirection,
                       ),
                     ),
                   ],
@@ -185,18 +198,13 @@ class _ScannerPageState extends State<ScannerPage> {
               ),
             )
           else
+            // 3. Jika masih loading, tampilkan spinner
             const Center(child: CircularProgressIndicator()),
 
-          // // Painter untuk menggambar kerangka tangan
-          // CustomPaint(
-          //   size: Size.infinite,
-          //   painter: LandmarkPainter(
-          //     hands: _detectedHands,
-          //     cameraPreviewSize: _cameraController?.value.previewSize,
-          //   ),
-          // ),
-          _buildBackButton(),
-          _buildBottomPanel(),
+          if (_errorMessage == null) ...[
+            _buildBackButton(),
+            _buildBottomPanel(),
+          ],
         ],
       ),
     );

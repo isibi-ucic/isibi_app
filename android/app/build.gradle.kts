@@ -35,6 +35,17 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // --- TAMBAHKAN DUA BAGIAN PENTING INI ---
+
+            // 1. Mengaktifkan R8 (ProGuard) untuk mengecilkan dan mengobfuscate kode
+            isMinifyEnabled = true
+            
+            // 2. Memberitahu R8 untuk menggunakan file aturan default DAN file kustom Anda
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

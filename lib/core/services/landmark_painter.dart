@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:hand_landmarker/hand_landmarker.dart';
 
@@ -16,62 +17,64 @@ const List<List<int>> kHandConnections = [
 
 class LandmarkPainter extends CustomPainter {
   final List<Hand> hands;
-  final Size? cameraPreviewSize;
+  final Size cameraPreviewSize; // Ukuran asli dari sensor (misal: 1280x720)
+  final CameraLensDirection cameraLensDirection;
 
-  LandmarkPainter({required this.hands, required this.cameraPreviewSize});
+  LandmarkPainter({
+    required this.hands,
+    required this.cameraPreviewSize,
+    required this.cameraLensDirection,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (cameraPreviewSize == null || hands.isEmpty) return;
+    // 'size' adalah ukuran widget di layar (misal: 400x800)
+    if (hands.isEmpty) return;
 
     final pointPaint = Paint()
       ..color = Colors.lightBlueAccent
-      ..strokeWidth = 8
+      ..strokeWidth = 10
       ..strokeCap = StrokeCap.round;
 
     final linePaint = Paint()
-      ..color = Colors.white.withOpacity(0.85)
-      ..strokeWidth = 3;
+      ..color = Colors.white
+      ..strokeWidth = 4;
 
     for (final hand in hands) {
-      // --- LOGIKA BARU UNTUK MENYESUAIKAN KOORDINAT ---
-
-      // Cek apakah orientasi gambar dari sensor adalah landscape (width > height)
-      final bool isLandscape =
-          cameraPreviewSize!.width > cameraPreviewSize!.height;
-
       final landmarkOffsets = hand.landmarks.map((landmark) {
-        double dx, dy;
-
-        if (isLandscape) {
-          // Jika sensor landscape tapi tampilan portrait, kita "putar" koordinatnya
-          // Koordinat Y landmark (atas-bawah) menjadi koordinat X di layar (kiri-kanan)
-          // Koordinat X landmark (kiri-kanan) menjadi koordinat Y di layar (atas-bawah)
-          dx = landmark.y * size.width;
-          dy = landmark.x * size.height;
-        } else {
-          // Jika sensor sudah portrait, gunakan seperti biasa
-          dx = landmark.x * size.width;
-          dy = landmark.y * size.height;
-        }
-
-        // Karena kamera depan biasanya dicerminkan, kita balik sumbu X-nya
-        return Offset(size.width - dx, dy);
+        return _transformCoordinates(landmark, size);
       }).toList();
 
-      // Sisa kode untuk menggambar garis dan titik tetap sama
       for (final connection in kHandConnections) {
-        if (connection[0] < landmarkOffsets.length &&
-            connection[1] < landmarkOffsets.length) {
-          canvas.drawLine(
-            landmarkOffsets[connection[0]],
-            landmarkOffsets[connection[1]],
-            linePaint,
-          );
-        }
+        canvas.drawLine(
+          landmarkOffsets[connection[0]],
+          landmarkOffsets[connection[1]],
+          linePaint,
+        );
       }
 
       canvas.drawPoints(PointMode.points, landmarkOffsets, pointPaint);
+    }
+  }
+
+  // Di dalam kelas LandmarkPainter
+
+  Offset _transformCoordinates(Landmark landmark, Size screenSize) {
+    // Koordinat x dan y dari MediaPipe (nilai relatif antara 0.0 - 1.0 dari gambar asli)
+    final double landmarkX = landmark.x;
+    final double landmarkY = landmark.y;
+
+    // Langsung lakukan transformasi "putar" dan "skala" dalam satu langkah
+    // Sumbu Y dari data sensor (atas-bawah) menjadi sumbu X di layar (kiri-kanan)
+    final double dx = landmarkY * screenSize.width;
+    // Sumbu X dari data sensor (kiri-kanan) menjadi sumbu Y di layar (atas-bawah)
+    final double dy = landmarkX * screenSize.height;
+
+    // Tangani efek cermin untuk kamera depan
+    if (cameraLensDirection == CameraLensDirection.back) {
+      return Offset(screenSize.width - dx, dy);
+    } else {
+      return Offset(dx, dy);
     }
   }
 
