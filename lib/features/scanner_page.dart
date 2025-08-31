@@ -1,9 +1,7 @@
-// lib/features/sign_detector/presentation/pages/scanner_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:glassmorphism/glassmorphism.dart';
-import 'package:hand_landmarker/hand_landmarker.dart'; // Untuk objek Hand dan Landmark
+import 'package:hand_landmarker/hand_landmarker.dart';
 import 'package:isibi_app/core/services/hand_landmarker_service.dart';
 import 'package:isibi_app/core/services/landmark_painter.dart';
 import 'package:isibi_app/core/services/prediction_services.dart';
@@ -17,44 +15,45 @@ class ScannerPage extends StatefulWidget {
 }
 
 class _ScannerPageState extends State<ScannerPage> {
-  // Controller & State Management
+  // Controller & State
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _isProcessing = false;
-  String? _errorMessage; // <-- Variabel baru untuk pesan error
+  String? _errorMessage;
 
-  // Inisialisasi Services
-  late final HandLandmarkerService _handLandmarkerService =
-      HandLandmarkerService();
-  late final TFLiteService _tfliteService = TFLiteService();
-  late final PredictionService _predictionService = PredictionService();
+  // Services (dideklarasikan sebagai late final)
+  late final HandLandmarkerService _handLandmarkerService;
+  late final TFLiteService _tfliteService;
+  late final PredictionService _predictionService;
 
-  // Variabel untuk menampilkan hasil di UI
+  // UI State
   List<Hand> _detectedHands = [];
   String? _currentPrediction;
   String _currentSentence = "";
-  final List<String> _suggestions = [];
+  List<String> _suggestions = [];
 
   @override
   void initState() {
     super.initState();
+    // Inisialisasi service di sini, sesuai praktik terbaik 'late final'
+    _handLandmarkerService = HandLandmarkerService();
+    _tfliteService = TFLiteService();
+    _predictionService = PredictionService();
+
+    // Mulai seluruh proses setup
     _initializeAllServices();
   }
 
   Future<void> _initializeAllServices() async {
     try {
-      // 1. TUNGGU loadModel BENAR-BENAR SELESAI
+      // Tunggu semua service siap sebelum memulai kamera
       await _tfliteService.loadModel();
       await _handLandmarkerService.initialize();
-
-      // 2. HANYA JIKA service lain berhasil, baru inisialisasi kamera
       await _initializeCamera();
     } catch (e) {
-      print("Error saat inisialisasi service: $e");
-      // Tampilkan pesan error ke pengguna jika perlu
       if (mounted) {
         setState(() {
-          // Tambahkan variabel state untuk error message jika mau
+          _errorMessage = "Gagal inisialisasi: ${e.toString()}";
         });
       }
     }
@@ -62,77 +61,78 @@ class _ScannerPageState extends State<ScannerPage> {
 
   Future<void> _initializeCamera() async {
     final cameras = await availableCameras();
-    final backCamera = cameras.firstWhere(
-      (camera) => camera.lensDirection == CameraLensDirection.back,
+    final frontCamera = cameras.firstWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.front,
       orElse: () => cameras.first,
     );
 
     _cameraController = CameraController(
-      backCamera,
+      frontCamera,
       ResolutionPreset.medium,
       enableAudio: false,
     );
-
     await _cameraController!.initialize();
-    if (!mounted) return;
 
-    // 3. LOGIKA BUFFER YANG AMAN DI startImageStream
     _cameraController!.startImageStream((image) {
-      if (_isProcessing) return;
+      if (_isProcessing) return; // Gerbang penjaga
+      _isProcessing = true; // Kunci gerbangnya
 
-      setState(() {
-        _isProcessing = true;
-      });
-
-      final sensorOrientation =
-          _cameraController!.description.sensorOrientation;
-      // Lakukan semua proses di dalam try-catch-finally atau .whenComplete
+      // Lakukan semua proses secara berurutan dan aman
       _handLandmarkerService
-          .detect(image, sensorOrientation)
+          .detect(image, _cameraController!.description.sensorOrientation)
           .then((hands) {
-            setState(() {
-              _detectedHands = hands;
-            });
-
             if (hands.isNotEmpty) {
-              final List<double> normalizedLandmarks = _normalizeLandmarks(
+              final normalizedLandmarks = _normalizeLandmarks(
                 hands.first.landmarks,
               );
-
               if (normalizedLandmarks.length == 42) {
-                _tfliteService.runInference(normalizedLandmarks).then((
-                  prediction,
-                ) {
-                  if (prediction != null) {
-                    _predictionService.addCharacter(prediction);
-                    if (mounted) {
-                      setState(() {
-                        _currentPrediction = prediction;
-                        _currentSentence = _predictionService.currentSentence;
-                      });
-                    }
-                  }
-                });
+                // Jalankan inferensi dan teruskan 'hands' untuk UI
+                return _tfliteService
+                    .runInference(normalizedLandmarks)
+                    .then(
+                      (prediction) => {
+                        'prediction': prediction,
+                        'hands': hands,
+                      },
+                    );
               }
             }
+            // Jika tidak ada tangan atau landmarks, teruskan 'hands' saja
+            return {'prediction': null, 'hands': hands};
           })
-          .catchError((error) {
-            // Tangani error yang mungkin terjadi selama deteksi
-            print("Error dalam stream: $error");
-          })
-          .whenComplete(() {
-            // Bagian ini akan SELALU dijalankan, memastikan flag direset
+          .then((result) {
+            // Lakukan casting pada 'result' menjadi Map<String, dynamic>
+            final resultMap = result as Map<String, dynamic>;
+
+            // Sekarang akses data dari resultMap yang sudah jelas tipenya
+            final String? prediction = resultMap['prediction'] as String?;
+            final List<Hand> hands = resultMap['hands'] as List<Hand>;
+
+            if (prediction != null) {
+              _predictionService.addCharacter(prediction);
+            }
+
+            // Lakukan satu kali setState di akhir dengan semua data baru
             if (mounted) {
               setState(() {
-                _isProcessing = false;
+                _detectedHands = hands;
+                _currentPrediction = prediction;
+                _currentSentence = _predictionService.currentSentence;
+                _suggestions = _predictionService.getSuggestions();
               });
             }
+          })
+          .whenComplete(() {
+            // Selalu buka kembali gerbangnya, baik sukses maupun gagal
+            _isProcessing = false;
           });
     });
 
-    setState(() {
-      _isCameraInitialized = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isCameraInitialized = true;
+      });
+    }
   }
 
   List<double> _normalizeLandmarks(List<Landmark> landmarks) {
@@ -155,7 +155,6 @@ class _ScannerPageState extends State<ScannerPage> {
     super.dispose();
   }
 
-  // Di dalam file scanner_page.dart
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -240,8 +239,6 @@ class _ScannerPageState extends State<ScannerPage> {
       ),
     );
   }
-
-  // Di dalam file scanner_page.dart
 
   Widget _buildBottomPanel() {
     return Positioned(

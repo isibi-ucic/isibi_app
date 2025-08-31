@@ -1,4 +1,4 @@
-// lib/services/prediction_service.dart
+// lib/core/services/prediction_services.dart
 
 // --- Implementasi Sederhana TrieNode ---
 class TrieNode {
@@ -14,15 +14,17 @@ class PredictionService {
   String _lastPredictedLetter = "";
   String _lastAddedLetter = "";
   int _predictionCounter = 0;
-  static const int PREDICTION_THRESHOLD = 10; // Huruf stabil setelah 10 frame
+  static const int PREDICTION_THRESHOLD = 30; // Huruf stabil setelah 10 frame
 
   PredictionService() {
+    // Memanggil fungsi untuk memuat kamus saat service dibuat
     _loadDictionary();
   }
 
-  // Muat daftar kata dan bangun Trie
+  // --- FUNGSI YANG HILANG - TAMBAHKAN INI ---
+  // Muat daftar kata dan bangun Trie.
+  // Nantinya, Anda bisa mengganti ini untuk memuat dari file aset.
   Future<void> _loadDictionary() async {
-    // Ganti ini dengan memuat file kamus dari assets Anda
     List<String> words = [
       "MAKAN",
       "MINUM",
@@ -31,11 +33,19 @@ class PredictionService {
       "APA",
       "HALO",
       "SELAMAT",
+      "PAGI",
+      "SIANG",
+      "SORE",
+      "MALAM",
+      "TERIMA",
+      "KASIH",
     ];
     for (var word in words) {
       _insert(word.toUpperCase());
     }
+    print("Kamus Trie berhasil dimuat dengan ${words.length} kata.");
   }
+  // -----------------------------------------
 
   void _insert(String word) {
     TrieNode node = _root;
@@ -52,7 +62,6 @@ class PredictionService {
   void addCharacter(String newPrediction) {
     if (newPrediction.isEmpty) return;
 
-    // Logika stabilisasi (debouncing)
     if (newPrediction == _lastPredictedLetter) {
       _predictionCounter++;
     } else {
@@ -60,7 +69,6 @@ class PredictionService {
       _lastPredictedLetter = newPrediction;
     }
 
-    // Jika huruf sudah stabil dan berbeda dari yang terakhir ditambahkan
     if (_predictionCounter >= PREDICTION_THRESHOLD &&
         newPrediction != _lastAddedLetter) {
       currentSentence += newPrediction;
@@ -68,12 +76,38 @@ class PredictionService {
     }
   }
 
-  // Ambil saran kata dari Trie
   List<String> getSuggestions() {
-    // Logika untuk mencari saran berdasarkan kata terakhir di currentSentence
-    // (Untuk kesederhanaan, kita kembalikan list statis dulu)
-    if (currentSentence.endsWith("MA")) return ["MAKAN"];
-    return [];
+    final words = currentSentence.split(' ');
+    if (words.isEmpty) return [];
+
+    final currentPrefix = words.last.toUpperCase();
+    if (currentPrefix.isEmpty) return [];
+
+    return _findWordsWithPrefix(currentPrefix);
+  }
+
+  List<String> _findWordsWithPrefix(String prefix) {
+    TrieNode node = _root;
+    for (var char in prefix.split('')) {
+      if (!node.children.containsKey(char)) {
+        return [];
+      }
+      node = node.children[char]!;
+    }
+
+    List<String> results = [];
+    _collectWords(node, prefix, results);
+    return results.take(3).toList();
+  }
+
+  void _collectWords(TrieNode node, String currentWord, List<String> results) {
+    if (results.length >= 3) return;
+    if (node.isEndOfWord) {
+      results.add(currentWord);
+    }
+    node.children.forEach((char, childNode) {
+      _collectWords(childNode, currentWord + char, results);
+    });
   }
 
   void clear() {

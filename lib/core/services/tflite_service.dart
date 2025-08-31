@@ -48,6 +48,7 @@ class TFLiteService {
     }
   }
 
+
   Future<String?> runInference(List<double> landmarks) async {
     // Pastikan input memiliki 42 fitur
     if (landmarks.length != 42) return null;
