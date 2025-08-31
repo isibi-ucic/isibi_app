@@ -3,7 +3,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:isibi_app/core/widgets/cretae_route.dart';
 import 'package:isibi_app/features/about_page.dart';
 import 'package:isibi_app/features/materi_list_page.dart';
-import 'package:isibi_app/features/scanner_page.dart';
 
 // Asumsikan path ke halaman-halaman ini sudah benar
 import 'package:isibi_app/features/scanner_web_page.dart';
@@ -68,18 +67,6 @@ class HomePage extends StatelessWidget {
             onTap: () {
               // Ganti dengan halaman About Us atau Informasi Anda
               Navigator.push(context, createFadeRoute(const AboutPage()));
-            },
-          ),
-          const SizedBox(height: 16),
-          // Kartu Fitur Scanner Flutter
-          FeatureCard(
-            icon: FontAwesomeIcons.handsAslInterpreting,
-            title: 'Scanner (debug)',
-            subtitle:
-                'Terjemahkan isyarat secara real-time langsung di Flutter',
-            color: Colors.grey,
-            onTap: () {
-              Navigator.push(context, createFadeRoute(const ScannerPage()));
             },
           ),
           const SizedBox(height: 16),
