@@ -74,9 +74,10 @@ class HomePage extends StatelessWidget {
           // Kartu Fitur Scanner Flutter
           FeatureCard(
             icon: FontAwesomeIcons.handsAslInterpreting,
-            title: 'Scanner Isyarat',
-            subtitle: 'Terjemahkan isyarat secara real-time',
-            color: Colors.blue,
+            title: 'Scanner (debug)',
+            subtitle:
+                'Terjemahkan isyarat secara real-time langsung di Flutter',
+            color: Colors.grey,
             onTap: () {
               Navigator.push(context, createFadeRoute(const ScannerPage()));
             },

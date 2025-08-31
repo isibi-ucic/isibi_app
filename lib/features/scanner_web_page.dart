@@ -21,21 +21,6 @@ class _ScannerWebPageState extends State<ScannerWebPage> {
     _initAndRequestPermission();
   }
 
-  // --- Helper function untuk menampilkan SnackBar ---
-  void _showDebugSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return;
-    // Hapus SnackBar lama jika ada
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    // Tampilkan SnackBar baru
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.redAccent : Colors.blueAccent,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   // --- FUNGSI BARU UNTUK MENGELOLA IZIN DAN INISIALISASI ---
   Future<void> _initAndRequestPermission() async {
     // 2. Minta izin kamera terlebih dahulu
